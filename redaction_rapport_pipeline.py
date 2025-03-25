@@ -155,6 +155,11 @@ class Pipeline:
     def pipe(
             self, user_message: str, model_id: str, messages: List[dict], body: dict
     ) -> Union[str, Generator, Iterator]:
+        logger.debug("pipe called")
+        logger.warning(f"user_message: {user_message}")
+        logger.warning(f"model_id: {model_id}")
+        logger.warning(f"messages: {messages}")
+
         # Initialize the crew if not already done
         if self.crew is None:
             self.on_startup()
