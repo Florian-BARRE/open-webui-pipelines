@@ -1,68 +1,88 @@
+import logging
 from typing import List, Union, Generator, Iterator
+from pydantic import BaseModel, Field
 from schemas import OpenAIChatMessage
-from pydantic import BaseModel
+
+# Configure the logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 class Pipeline:
     class Valves(BaseModel):
-        pass
+        """Configurable parameters for the pipeline."""
+        VAR_EXAMPLE: str = Field(default="DEFAULT_VALUE", description="An example environment variable")
 
     def __init__(self):
-        # Optionally, you can set the id and name of the pipeline.
-        # Best practice is to not specify the id so that it can be automatically inferred from the filename, so that users can install multiple versions of the same pipeline.
-        # The identifier must be unique across all pipelines.
-        # The identifier must be an alphanumeric string that can include underscores or hyphens. It cannot contain spaces, special characters, slashes, or backslashes.
-        # self.id = "pipeline_example"
-
-        # The name of the pipeline.
+        """Initialize the pipeline."""
         self.name = "Pipeline Example"
-        pass
+        self.valves = self.Valves()
 
     async def on_startup(self):
-        # This function is called when the server is started.
-        print(f"on_startup:{__name__}")
-        pass
+        """Function called when the server starts."""
+        logger.info(f"Starting up pipeline: {self.name}")
 
     async def on_shutdown(self):
-        # This function is called when the server is stopped.
-        print(f"on_shutdown:{__name__}")
-        pass
+        """Function called when the server shuts down."""
+        logger.info(f"Shutting down pipeline: {self.name}")
 
     async def on_valves_updated(self):
-        # This function is called when the valves are updated.
-        pass
+        """Function called when the valves are updated."""
+        logger.debug("Valves update detected.")
 
     async def inlet(self, body: dict, user: dict) -> dict:
-        # This function is called before the OpenAI API request is made. You can modify the form data before it is sent to the OpenAI API.
-        print(f"inlet:{__name__}")
-
-        print("body", body)
-        print("user", user)
-
+        """Function called before making the OpenAI API request."""
+        logger.debug(f"Inlet of pipeline: {self.name}")
+        logger.debug(f"Request body: {body}")
+        logger.debug(f"User: {user}")
         return body
 
     async def outlet(self, body: dict, user: dict) -> dict:
-        # This function is called after the OpenAI API response is completed. You can modify the messages after they are received from the OpenAI API.
-        print(f"outlet:{__name__}")
-
-        print("body", body)
-        print("user", user)
-
+        """Function called after receiving the OpenAI API response."""
+        logger.debug(f"Outlet of pipeline: {self.name}")
+        logger.debug(f"Response body: {body}")
+        logger.debug(f"User: {user}")
         return body
 
-    def pipe(
-        self, user_message: str, model_id: str, messages: List[dict], body: dict
+    async def pipe(
+            self, user_message: str, model_id: str, messages: List[dict], body: dict,
+            __event_emitter__=None, __user__=None, __metadata__=None, __files__=None
     ) -> Union[str, Generator, Iterator]:
-        # This is where you can add your custom pipelines like RAG.
-        print(f"pipe:{__name__}")
+        """Main function of the pipeline to process messages."""
+        logger.debug(f"pipe called for pipeline: {self.name}")
+        logger.debug(f"user_message: {user_message}")
+        logger.debug(f"model_id: {model_id}")
+        logger.debug(f"messages: {messages}")
+        logger.debug(f"body: {body}")
+        logger.debug(f"__event_emitter__: {__event_emitter__}")
+        logger.debug(f"__user__: {__user__}")
+        logger.debug(f"__metadata__: {__metadata__}")
+        logger.debug(f"__files__: {__files__}")
 
-        # If you'd like to check for title generation, you can add the following check
+        logger.info(f"Processing user message: {user_message}")
+        if __event_emitter__:
+            await __event_emitter__(
+                {
+                    "type": "status",
+                    "data": {"description": "Processing in progress...", "done": False}
+                }
+            )
+        if __files__:
+            for file in __files__:
+                logger.info(f"Received file: {file['filename']}")
         if body.get("title", False):
-            print("Title Generation Request")
-
-        print("messages", messages)
-        print("model_id", model_id)
-        print("user_message", user_message)
-        print("body", body)
-
-        return f"{__name__} response to: {user_message}"
+            logger.info("Title generation request detected.")
+        response = f"Response from pipeline '{self.name}' to: {user_message}"
+        if __event_emitter__:
+            await __event_emitter__(
+                {
+                    "type": "status",
+                    "data": {"description": "Processing completed.", "done": True}
+                }
+            )
+        return response
