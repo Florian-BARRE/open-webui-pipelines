@@ -13,6 +13,21 @@ from typing import List, Union, Generator, Iterator
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel, Field
 
+from crewai.telemetry import Telemetry
+
+
+def noop(*args, **kwargs):
+    pass
+
+
+def disable_crewai_teleketry():
+    for attr in dir(Telemetry):
+        if callable(getattr(Telemetry, attr)) and not attr.startswith("__"):
+            setattr(Telemetry, attr, noop)
+
+
+disable_crewai_teleketry()
+
 
 class Pipeline:
     class Valves(BaseModel):
@@ -27,6 +42,8 @@ class Pipeline:
         self.valves = self.Valves(
             **{k: os.getenv(k, v.default) for k, v in self.Valves.model_fields.items()}
         )
+
+        print("Valves:", self.valves)
 
         self.crew = None
         self.result = None
@@ -126,7 +143,7 @@ class Pipeline:
         pass
 
     def pipe(
-        self, user_message: str, model_id: str, messages: List[dict], body: dict
+            self, user_message: str, model_id: str, messages: List[dict], body: dict
     ) -> Union[str, Generator, Iterator]:
         # Initialiser le crew si ce n'est pas déjà fait
         if self.crew is None:
