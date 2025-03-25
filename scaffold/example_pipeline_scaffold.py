@@ -23,36 +23,36 @@ class Pipeline:
         self.name = "Pipeline Example"
         self.valves = self.Valves()
 
-    async def on_startup(self):
+    def on_startup(self):
         """Function called when the server starts."""
         logger.info(f"Starting up pipeline: {self.name}")
 
-    async def on_shutdown(self):
+    def on_shutdown(self):
         """Function called when the server shuts down."""
         logger.info(f"Shutting down pipeline: {self.name}")
 
-    async def on_valves_updated(self):
+    def on_valves_updated(self):
         """Function called when the valves are updated."""
         logger.debug("Valves update detected.")
 
-    async def inlet(self, body: dict, user: dict) -> dict:
+    def inlet(self, body: dict, user: dict) -> dict:
         """Function called before making the OpenAI API request."""
         logger.debug(f"Inlet of pipeline: {self.name}")
         logger.debug(f"Request body: {body}")
         logger.debug(f"User: {user}")
         return body
 
-    async def outlet(self, body: dict, user: dict) -> dict:
+    def outlet(self, body: dict, user: dict) -> dict:
         """Function called after receiving the OpenAI API response."""
         logger.debug(f"Outlet of pipeline: {self.name}")
         logger.debug(f"Response body: {body}")
         logger.debug(f"User: {user}")
         return body
 
-    async def pipe(
+    def pipe(
             self, user_message: str, model_id: str, messages: List[dict], body: dict,
             __event_emitter__=None, __user__=None, __metadata__=None, __files__=None
-    ) -> Union[str, AsyncGenerator[str], AsyncIterator[str]]:
+    ) -> Union[str, Generator[str], Iterator[str]]:
         """Main function of the pipeline to process messages."""
         logger.debug(f"async pipe called for pipeline: {self.name}")
         logger.debug(f"user_message: {user_message}")
@@ -66,7 +66,7 @@ class Pipeline:
 
         logger.info(f"Processing user message: {user_message}")
         if __event_emitter__:
-            await __event_emitter__(
+            __event_emitter__(
                 {
                     "type": "status",
                     "data": {"description": "Processing in progress...", "done": False}
@@ -79,7 +79,7 @@ class Pipeline:
             logger.info("Title generation request detected.")
         response = f"Response from pipeline '{self.name}' to: {user_message}"
         if __event_emitter__:
-            await __event_emitter__(
+            __event_emitter__(
                 {
                     "type": "status",
                     "data": {"description": "Processing completed.", "done": True}
