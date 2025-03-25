@@ -36,8 +36,8 @@ class Pipeline:
         # This function is called before the OpenAI API request is made. You can modify the form data before it is sent to the OpenAI API.
         print(f"inlet:{__name__}")
 
-        print(body)
-        print(user)
+        print("body", body)
+        print("user", user)
 
         return body
 
@@ -45,8 +45,8 @@ class Pipeline:
         # This function is called after the OpenAI API response is completed. You can modify the messages after they are received from the OpenAI API.
         print(f"outlet:{__name__}")
 
-        print(body)
-        print(user)
+        print("body", body)
+        print("user", user)
 
         return body
 
@@ -60,8 +60,9 @@ class Pipeline:
         if body.get("title", False):
             print("Title Generation Request")
 
-        print(messages)
-        print(user_message)
-        print(body)
+        print("messages", messages)
+        print("model_id", model_id)
+        print("user_message", user_message)
+        print("body", body)
 
         return f"{__name__} response to: {user_message}"
