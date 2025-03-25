@@ -13,20 +13,7 @@ from typing import List, Union, Generator, Iterator
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel, Field
 
-from crewai.telemetry import Telemetry
 
-
-def noop(*args, **kwargs):
-    pass
-
-
-def disable_crewai_teleketry():
-    for attr in dir(Telemetry):
-        if callable(getattr(Telemetry, attr)) and not attr.startswith("__"):
-            setattr(Telemetry, attr, noop)
-
-
-disable_crewai_teleketry()
 
 
 class Pipeline:
@@ -36,6 +23,18 @@ class Pipeline:
         OPENAI_MODEL_NAME: str = Field(default="gpt-3.5-turbo", description="LLM Model")
 
     def __init__(self):
+        from crewai.telemetry import Telemetry
+
+        def noop(*args, **kwargs):
+            pass
+
+        def disable_crewai_teleketry():
+            for attr in dir(Telemetry):
+                if callable(getattr(Telemetry, attr)) and not attr.startswith("__"):
+                    setattr(Telemetry, attr, noop)
+
+        disable_crewai_teleketry()
+
         self.name = "Redaction Rapport Pipeline"
 
         # Initialize valve paramaters
@@ -149,8 +148,10 @@ class Pipeline:
         if self.crew is None:
             self.on_startup()
 
+        print("User Message:", user_message)
         # Lancer l'exécution de la pipeline avec le sujet fourni par l'utilisateur
         self.result = self.crew.kickoff(inputs={'topic': user_message})
-
+        print("Fin de la pipeline.")
+        print("Result:", self.result)
         # Retourner le résultat de la génération de l'article
         return self.result
