@@ -175,4 +175,5 @@ class Pipeline:
         logger.debug("Pipeline completed.")
         logger.debug("Result: %s", self.result)
         # Return the final article after editing and critique
-        return self.result
+        print(type(self.result))
+        return str(self.result)
