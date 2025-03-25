@@ -10,14 +10,14 @@ license: GPL-3.0
 """
 
 import os
-import logging
+from logging import getLogger
 from typing import List, Union, Generator, Iterator
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel, Field
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
+logger.setLevel("DEBUG")
 
 
 class Pipeline:
@@ -51,92 +51,101 @@ class Pipeline:
         self.crew = None
         self.result = None
 
-        self.researcher_agent = None
-        self.writer_agent = None
-        self.editor_agent = None
-        self.critic_agent = None
-
-        self.research_task = None
-        self.write_task = None
-        self.edit_task = None
-        self.critique_task = None
-
     async def on_startup(self):
         os.environ["OPENAI_API_KEY"] = self.valves.OPENAI_API_KEY
         os.environ["OPENAI_API_BASE"] = self.valves.OPENAI_API_BASE
         os.environ["OPENAI_MODEL_NAME"] = self.valves.OPENAI_MODEL_NAME
 
         # Create agents
-        self.researcher_agent = Agent(
+        researcher_agent = Agent(
             role="Researcher",
-            goal="Research information on {topic}",
+            goal="Rechercher les dernières informations et tendances sur {topic}",
             verbose=True,
             memory=True,
-            backstory="You are a researcher specializing in technology and AI.",
+            backstory="Vous êtes un chercheur spécialisé en technologie et intelligence artificielle.",
             allow_delegation=False
         )
 
-        self.writer_agent = Agent(
-            role="Writer",
-            goal="Write an article on {topic}",
+        # Création de l'agent rédacteur
+        magazine_writer = Agent(
+            role="Magazine Writer",
+            goal="Rédiger un article captivant sur le thème {topic}",
             verbose=True,
             memory=True,
-            backstory="You are an experienced technical writer.",
+            backstory="En tant que rédacteur, vous créez des articles engageants et informatifs.",
             allow_delegation=False
         )
 
-        self.editor_agent = Agent(
+        # Création de l'agent éditeur
+        editor_agent = Agent(
             role="Editor",
-            goal="Edit the article on {topic}",
+            goal="Revoir et améliorer l'article sur {topic}",
             verbose=True,
             memory=True,
-            backstory="You are an editor attentive to detail and quality.",
+            backstory="En tant qu'éditeur, vous assurez la qualité et la clarté de l'article.",
             allow_delegation=False
         )
 
-        self.critic_agent = Agent(
+        # Création de l'agent critique
+        critic_agent = Agent(
             role="Critic",
-            goal="Evaluate and validate the article on {topic}",
+            goal="Valider ou rejeter l'article sur {topic}. Si rejeté, fournir des points d'amélioration.",
             verbose=True,
             memory=True,
-            backstory="You are a discerning critic, ensuring excellence.",
+            backstory="En tant que critique, vous évaluez la qualité de l'article et suggérez des améliorations.",
             allow_delegation=False
         )
 
-        # Create tasks
-        self.research_task = Task(
-            description="Research relevant information on {topic}.",
-            expected_output="Summary of key information on {topic}.",
-            agent=self.researcher_agent,
-            async_execution=False
+        # Création de l'agent manager personnalisé
+        manager_agent = Agent(
+            role="Manager",
+            goal="Gérer et coordonner les tâches entre les agents jusqu'à la validation de l'article.",
+            verbose=True,
+            memory=True,
+            backstory="En tant que manager, vous supervisez le processus de création de l'article.",
+            allow_delegation=True
         )
 
-        self.write_task = Task(
-            description="Write a comprehensive article on {topic} based on research.",
-            expected_output="Article of 3 to 4 paragraphs on {topic}, formatted in markdown.",
-            agent=self.writer_agent,
-            async_execution=False
+        # Création de la tâche de recherche
+        research_task = Task(
+            description="Recherchez des informations sur {topic}, y compris les dernières tendances et innovations.",
+            expected_output="Un résumé détaillé des tendances récentes et des informations clés sur {topic}.",
+            agent=researcher_agent,
+            async_execution=False,
         )
 
-        self.edit_task = Task(
-            description="Edit the article on {topic} to improve clarity and quality.",
-            expected_output="Revised article, ready for validation.",
-            agent=self.editor_agent,
-            async_execution=False
+        # Création de la tâche de rédaction
+        write_article_task = Task(
+            description="Rédiger un article de type magazine sur {topic} en vous basant sur la recherche réalisée.",
+            expected_output="Un article de 3 à 4 paragraphes sur {topic}, formaté en markdown.",
+            agent=magazine_writer,
+            async_execution=False,
+            output_file="article-magazine.md"
         )
 
-        self.critique_task = Task(
-            description="Evaluate the article on {topic} and provide feedback for validation.",
-            expected_output="Detailed comments on the article and suggestions for improvement.",
-            agent=self.critic_agent,
-            async_execution=False
+        # Création de la tâche de relecture
+        edit_article_task = Task(
+            description="Relisez l'article de {topic} et proposez des améliorations pour la fluidité et la clarté.",
+            expected_output="Un article amélioré, prêt à être publié.",
+            agent=editor_agent,
+            async_execution=False,
+            output_file="article-magazine-edited.md"
         )
 
-        # Create the crew with a sequential process
+        # Création de la tâche critique
+        critique_article_task = Task(
+            description="Lisez l'article sur {topic} et déterminez s'il est prêt pour publication. Si non, fournissez des retours.",
+            expected_output="Feedback détaillé sur l'article et points d'amélioration.",
+            agent=critic_agent,
+            async_execution=False,
+        )
+
+        # Création du crew avec l'agent manager personnalisé
         self.crew = Crew(
-            agents=[self.researcher_agent, self.writer_agent, self.editor_agent, self.critic_agent],
-            tasks=[self.research_task, self.write_task, self.edit_task, self.critique_task],
-            process=Process.sequential
+            agents=[researcher_agent, magazine_writer, editor_agent, critic_agent],
+            tasks=[research_task, write_article_task, edit_article_task, critique_article_task],
+            manager_agent=manager_agent,
+            process=Process.hierarchical,  # Utilisation du processus hiérarchique pour une gestion structurée
         )
 
     async def on_shutdown(self):
