@@ -159,6 +159,10 @@ class Pipeline:
         if self.crew is None:
             self.on_startup()
 
+        if body.get("title", False):
+            logger.debug("Title Generation Request")
+            return "(title generation disabled)"
+
         logger.debug("User Message: %s", user_message)
         # Execute the pipeline with the user's topic
         self.result = self.crew.kickoff(inputs={'topic': user_message})
