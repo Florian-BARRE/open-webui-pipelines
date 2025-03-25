@@ -159,6 +159,7 @@ class Pipeline:
         logger.warning(f"user_message: {user_message}")
         logger.warning(f"model_id: {model_id}")
         logger.warning(f"messages: {messages}")
+        logger.warning(f"body: {body}")
 
         # Initialize the crew if not already done
         if self.crew is None:
