@@ -1,5 +1,5 @@
 import logging
-from typing import List, Union, Generator, Iterator
+from typing import List, Union, Generator, Iterator, AsyncIterator, AsyncGenerator
 from pydantic import BaseModel, Field
 from schemas import OpenAIChatMessage
 
@@ -52,9 +52,9 @@ class Pipeline:
     async def pipe(
             self, user_message: str, model_id: str, messages: List[dict], body: dict,
             __event_emitter__=None, __user__=None, __metadata__=None, __files__=None
-    ) -> Union[str, Generator, Iterator]:
+    ) -> Union[str, AsyncGenerator[str], AsyncIterator[str]]:
         """Main function of the pipeline to process messages."""
-        logger.debug(f"pipe called for pipeline: {self.name}")
+        logger.debug(f"async pipe called for pipeline: {self.name}")
         logger.debug(f"user_message: {user_message}")
         logger.debug(f"model_id: {model_id}")
         logger.debug(f"messages: {messages}")
